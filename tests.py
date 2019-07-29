@@ -21,7 +21,7 @@ class ChaBotTests(TestCase):
             'action': action
         }
 
-    def mock_stuff(self, payload, signature=None):
+    def mock_utils(self, payload, signature=None):
         body = bytearray(json.dumps(payload), 'utf-8')
         signature = signature or hmac.new(bytearray(self.SECRET, 'utf-8'), body, sha1).hexdigest()
         with mock.patch('app.utils.pr_opened') as mock_pr_opened:
@@ -36,35 +36,35 @@ class ChaBotTests(TestCase):
 
     def test_verifying_github_signature(self):
         payload = self.build_payload('opened')
-        resp, mock_open, mock_close = self.mock_stuff(payload, signature='asdfasdf')
+        resp, mock_open, mock_close = self.mock_utils(payload, signature='asdfasdf')
         assert resp.status_code == 403
         assert not mock_open.called
         assert not mock_close.called
 
     def test_pr_opened(self):
         payload = self.build_payload('opened')
-        resp, mock_open, mock_close = self.mock_stuff(payload)
+        resp, mock_open, mock_close = self.mock_utils(payload)
         assert resp.status_code == 200
         assert mock_open.called
         assert not mock_close.called
 
     def test_pr_reopened(self):
         payload = self.build_payload('reopened')
-        resp, mock_open, mock_close = self.mock_stuff(payload)
+        resp, mock_open, mock_close = self.mock_utils(payload)
         assert resp.status_code == 200
         assert mock_open.called
         assert not mock_close.called
 
     def test_pr_closed(self):
         payload = self.build_payload('closed')
-        resp, mock_open, mock_close = self.mock_stuff(payload)
+        resp, mock_open, mock_close = self.mock_utils(payload)
         assert resp.status_code == 200
         assert not mock_open.called
         assert mock_close.called
 
     def test_pr_merged(self):
         payload = self.build_payload('merged')
-        resp, mock_open, mock_close = self.mock_stuff(payload)
+        resp, mock_open, mock_close = self.mock_utils(payload)
         assert resp.status_code == 200
         assert not mock_open.called
         assert mock_close.called
