@@ -122,6 +122,7 @@ def pr_merged(payload):
         check_return_code(docker, 'docker-compose up -d on develop returned non-zero code')
     os.chdir(saved_cwd)
 
+
 @task
 def pr_closed(payload):
     saved_cwd = os.getcwd()
