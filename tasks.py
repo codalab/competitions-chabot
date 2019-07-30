@@ -81,6 +81,9 @@ def pr_opened(payload):
     with open('.env', 'w+') as f:
         f.write(f'BROKER_URL={queue}')
 
+    cp = subprocess.run(['cp', os.path.join(saved_cwd, 'docker-compose.compute_worker.yml'), '.'])
+    check_return_code(cp, f'could not copy docker-compose.compute_worker.yml file into branch {branch_name}')
+
     docker = docker_up()
     check_return_code(docker, f'docker-compose up -d for branch {branch_name} returned non-zero code')
 
@@ -118,6 +121,10 @@ def pr_merged(payload):
         check_return_code(git, 'git clone for branch develop returned non-zero code')
         with open('.env', 'w+') as f:
             f.write(f'BROKER_URL={queue}')
+
+        cp = subprocess.run(['cp', os.path.join(saved_cwd, 'docker-compose.compute_worker.yml'), '.'])
+        check_return_code(cp, f'could not copy docker-compose.compute_worker.yml file into develop')
+
         docker = docker_up()
         check_return_code(docker, 'docker-compose up -d on develop returned non-zero code')
     os.chdir(saved_cwd)

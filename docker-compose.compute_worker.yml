@@ -1,0 +1,18 @@
+version: '3'
+services:
+  compute_worker:
+    command: celery -A compute_worker worker -l info -Q compute-worker -n compute-worker@%n -Ofast -Ofair --concurrency=1
+    working_dir: /app
+    build:
+      context: .
+      dockerfile: Dockerfile.compute_worker
+    volumes:
+      - ./docker/compute_worker:/app
+      - /tmp/codalab-v2:/tmp/codalab-v2
+      # Actual connection back to docker parent to run things
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: .env
+    logging:
+      options:
+        max-size: "500k"
+        max-file: "10"
