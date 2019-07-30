@@ -58,9 +58,9 @@ def pr_opened(payload):
     app_name = f'competitions-v2-staging-pr-{pr_number}'
 
     # Set the API URL to be passed to the compute worker
-    success = set_heroku_config(app_name, 'SUBMISSION_API_URL', f'https://{app_name}.herokuapp.com/api')
+    success = set_heroku_config(app_name, 'SUBMISSIONS_API_URL', f'https://{app_name}.herokuapp.com/api')
     if not success:
-        raise ChaBotException(f'Unable to set SUBMISSION_API_URL for {app_name}')
+        raise ChaBotException(f'Unable to set SUBMISSIONS_API_URL for {app_name}')
 
     # Get pr servers queue url
     queue = get_heroku_config(app_name, 'CLOUDAMQP_URL')
@@ -107,9 +107,9 @@ def pr_merged(payload):
         app_name = f'competitions-v2-staging'
 
         # Set the API URL to be passed to the compute worker
-        success = set_heroku_config(app_name, 'SUBMISSION_API_URL', f'https://{app_name}.herokuapp.com/api')
+        success = set_heroku_config(app_name, 'SUBMISSIONS_API_URL', f'https://{app_name}.herokuapp.com/api')
         if not success:
-            raise ChaBotException(f'Unable to set SUBMISSION_API_URL for {app_name}')
+            raise ChaBotException(f'Unable to set SUBMISSIONS_API_URL for {app_name}')
 
         # Get pr servers queue url
         queue = get_heroku_config(app_name, 'CLOUDAMQP_URL')
