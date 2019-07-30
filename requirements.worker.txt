@@ -1,0 +1,8 @@
+# -r requirements.txt
+docker-compose
+Flask==1.1.1
+redis==3.3.2
+celery==4.3.0
+watchdog==0.9.0
+heroku3==3.4.0
+

@@ -1,0 +1,54 @@
+version: '3'
+services:
+  #-----------------------------------------------
+  #   Web Service
+  #-----------------------------------------------
+  flask:
+    build: .
+    command: /usr/local/bin/gunicorn app:flask_app -w 2 -b :8000 -b :80 --reload
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+      - 80:80
+    stdin_open: true
+    tty: true
+    logging:
+      options:
+        max-size: "500k"
+        max-file: "10"
+
+  #-----------------------------------------------
+  #   Redis
+  #-----------------------------------------------
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    logging:
+      options:
+        max-size: "500k"
+        max-file: "10"
+
+  #-----------------------------------------------
+  #   Celery Service
+  #-----------------------------------------------
+  worker:
+    # ignores changes in repos/ so that on git clone we don't relaunch the worker a thousand times
+    command: bash -c "watchmedo auto-restart -p '*.py' -i '**/repos/**/**' --recursive -- celery -A app:celery_app worker"
+    working_dir: /app
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    depends_on:
+      - redis
+    env_file: .env
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      options:
+        max-size: "500k"
+        max-file: "10"
+

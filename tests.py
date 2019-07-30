@@ -6,14 +6,14 @@ from unittest import mock, TestCase
 
 from flask.cli import load_dotenv
 
-from app import app
+from app import flask_app
 
 
 class ChaBotTests(TestCase):
     def setUp(self):
         load_dotenv()
         self.SECRET = os.environ.get('SPECIAL_SECRET')
-        self.client = app.test_client()
+        self.client = flask_app.test_client()
 
     @staticmethod
     def build_payload(action):
