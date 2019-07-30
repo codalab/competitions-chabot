@@ -2,7 +2,6 @@ version: '3'
 services:
   compute_worker:
     command: celery -A compute_worker worker -l info -Q compute-worker -n compute-worker@%n -Ofast -Ofair --concurrency=1
-    working_dir: /app
     build:
       context: .
       dockerfile: Dockerfile.compute_worker
