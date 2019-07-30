@@ -43,8 +43,17 @@ def get_heroku_config(application_name, key):
     return False
 
 
+def docker_up():
+    return subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'up', '-d'])
+
+
+def check_return_code(cmd, error_message):
+    if cmd.returncode != 0:
+        raise ChaBotException(error_message)
+
+
 @task
-def pr_opened(payload, *args, **kwargs):
+def pr_opened(payload):
     pr_number = payload['pull_request']['number']
     app_name = f'competitions-v2-staging-pr-{pr_number}'
 
@@ -68,17 +77,50 @@ def pr_opened(payload, *args, **kwargs):
     os.mkdir(branch_path)
     os.chdir(branch_path)
     git_clone = subprocess.run(['git', 'clone', '--single-branch', '--branch', branch_name, repo_clone_url, '.'])
-    if git_clone.returncode != 0:
-        raise ChaBotException(f'git clone returned a non-zero code for branch {branch_name}')
+    check_return_code(git_clone, f'git clone returned a non-zero code for branch {branch_name}')
     with open('.env', 'w+') as f:
         f.write(f'BROKER_URL={queue}')
-    subprocess.run(['ls'])
 
-    docker_up = subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'up', '-d'])
-    if docker_up.returncode != 0:
-        raise ChaBotException(f'docker-compose up -d for branch {branch_name} returned non-zero code')
+    docker = docker_up()
+    check_return_code(docker, f'docker-compose up -d for branch {branch_name} returned non-zero code')
+
     os.chdir(saved_cwd)
 
+
+def pr_merged(payload):
+    saved_cwd = os.getcwd()
+    branch_path = os.path.join('repos', 'develop')
+    pull = True
+    if not os.path.exists(branch_path):
+        pull = False
+        os.mkdir(branch_path)
+    os.chdir(branch_path)
+    if pull:
+        git = subprocess.run(['git', 'pull'])
+        check_return_code(git, 'git pull on branch develop returned non-zero code')
+        docker = docker_up()
+        check_return_code(docker, 'docker-compose up -d on develop returned a non-zero code')
+    else:
+        app_name = f'competitions-v2-staging'
+
+        # Set the API URL to be passed to the compute worker
+        success = set_heroku_config(app_name, 'SUBMISSION_API_URL', f'https://{app_name}.herokuapp.com/api')
+        if not success:
+            raise ChaBotException(f'Unable to set SUBMISSION_API_URL for {app_name}')
+
+        # Get pr servers queue url
+        queue = get_heroku_config(app_name, 'CLOUDAMQP_URL')
+        if not queue:
+            raise ChaBotException('Unable to get information from heroku, or variable does not exist')
+
+        repo_clone_url = payload['repository']['clone_url']
+        git = subprocess.run(['git', 'clone', repo_clone_url, '.'])
+        check_return_code(git, 'git clone for branch develop returned non-zero code')
+        with open('.env', 'w+') as f:
+            f.write(f'BROKER_URL={queue}')
+        docker = docker_up()
+        check_return_code(docker, 'docker-compose up -d on develop returned non-zero code')
+    os.chdir(saved_cwd)
 
 @task
 def pr_closed(payload):
@@ -89,10 +131,12 @@ def pr_closed(payload):
         raise ChaBotException(f'{branch_path} does not exist. cannot remove container')
     os.chdir(branch_path)
     docker_down = subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'down'])
-    if docker_down.returncode != 0:
-        raise ChaBotException(f'docker-compose down for branch {branch_name} returned a non-zero code')
+    check_return_code(docker_down, f'docker-compose down for branch {branch_name} returned a non-zero code')
     os.chdir(saved_cwd)
     shutil.rmtree(branch_path)
+    if payload.get('pull_request', {}).get('merged'):
+        if payload.get('pull_request', {}).get('base', {}).get('ref') == 'develop':
+            pr_merged(payload)
 
 
 @task
@@ -104,9 +148,7 @@ def pr_updated(payload):
         return pr_opened(payload)
     os.chdir(branch_path)
     git = subprocess.run(['git', 'pull'])
-    if git.returncode != 0:
-        raise ChaBotException(f'git pull for {branch_name} returned non-zero code')
-    docker_up = subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'up', '-d'])
-    if docker_up.returncode != 0:
-        raise ChaBotException(f'docker-compose up -d for branch {branch_name} returned non-zero code')
+    check_return_code(git, f'git pull for {branch_name} returned non-zero code')
+    docker = docker_up()
+    check_return_code(docker, f'docker-compose up -d for branch {branch_name} returned non-zero code')
     os.chdir(saved_cwd)
