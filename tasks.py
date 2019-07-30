@@ -46,7 +46,6 @@ def get_heroku_config(application_name, key):
 @task
 def pr_opened(payload, *args, **kwargs):
     pr_number = payload['pull_request']['number']
-    pr_number = 216
     app_name = f'competitions-v2-staging-pr-{pr_number}'
 
     # Set the API URL to be passed to the compute worker
