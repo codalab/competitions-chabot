@@ -49,7 +49,9 @@ def pr_opened(payload, *args, **kwargs):
     app_name = f'competitions-v2-staging-pr-{pr_number}'
 
     # Set the API URL to be passed to the compute worker
-    set_heroku_config(app_name, 'SUBMISSION_API_URL', f'https://{app_name}.herokuapp.com/api')
+    success = set_heroku_config(app_name, 'SUBMISSION_API_URL', f'https://{app_name}.herokuapp.com/api')
+    if not success:
+        raise ChaBotException(f'Unable to set SUBMISSION_API_URL for {app_name}')
 
     # Get pr servers queue url
     queue = get_heroku_config(app_name, 'CLOUDAMQP_URL')
@@ -83,6 +85,8 @@ def pr_closed(payload):
     saved_cwd = os.getcwd()
     branch_name = payload['pull_request']['head']['ref']
     branch_path = os.path.join('repos', branch_name)
+    if not os.path.exists(branch_path):
+        raise ChaBotException(f'{branch_path} does not exist. cannot remove container')
     os.chdir(branch_path)
     docker_down = subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'down'])
     if docker_down.returncode != 0:
@@ -99,7 +103,9 @@ def pr_updated(payload):
     if not os.path.exists(branch_path):
         return pr_opened(payload)
     os.chdir(branch_path)
-    subprocess.run(['git', 'pull'])
+    git = subprocess.run(['git', 'pull'])
+    if git.returncode != 0:
+        raise ChaBotException(f'git pull for {branch_name} returned non-zero code')
     docker_up = subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'up', '-d'])
     if docker_up.returncode != 0:
         raise ChaBotException(f'docker-compose up -d for branch {branch_name} returned non-zero code')
