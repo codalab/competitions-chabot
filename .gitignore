@@ -106,3 +106,6 @@ venv.bak/
 # repo location
 repos/*
 !repos/.gitkeep
+
+# nohup logs
+nohup.out

@@ -44,7 +44,7 @@ def get_heroku_config(application_name, key):
 
 
 def docker_up():
-    return subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'up', '-d'])
+    return subprocess.run(['docker-compose', '-f', 'docker-compose.compute_worker.yml', 'up', '-d', '--build'])
 
 
 def check_return_code(cmd, error_message):
