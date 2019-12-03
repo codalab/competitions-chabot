@@ -1,7 +1,7 @@
 version: '3'
 services:
   compute_worker:
-    command: celery -A compute_worker worker -l info -Q compute-worker -n compute-worker@%n -Ofast -Ofair --concurrency=1
+    command: celery -A compute_worker worker -l info -Q compute-worker -n compute-worker@%n -Ofast -Ofair --concurrency=1 --without-gossip --without-mingle --without-heartbeat
     build:
       context: .
       dockerfile: Dockerfile.compute_worker
